@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/pago_pedidos_proveedor" name="PagoPedidoProveedor" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="GET">
+        <inSequence>
+            <call>
+                <endpoint key="ObtenerPedidosSitioWeb"/>
+            </call>
+            <filter regex="OK" source="json-eval($.CODIGO)">
+                <then>
+                    <payloadFactory description="DatosCompraProveedor" media-type="json">
+                        <format>{"identificacion": "0302699798", "productos": $1}</format>
+                        <args>
+                            <arg evaluator="json" expression="$.RESULTADO"/>
+                        </args>
+                    </payloadFactory>
+                    <call>
+                        <endpoint key="ComprarProductosProveedor"/>
+                    </call>
+                    <filter regex="OK" source="json-eval($.CODIGO)">
+                        <then>
+                            <clone>
+                                <target>
+                                    <sequence>
+                                        <payloadFactory description="DatosTransaccionPago" media-type="json">
+                                            <format>{&#xd;
+  "idUsario": 4,&#xd;
+  "numeroCuentaDestino": "026614800550905",&#xd;
+  "valor": $1,&#xd;
+  "idBanco": 0&#xd;
+}</format>
+                                            <args>
+                                                <arg evaluator="json" expression="$.RESULTADO.total"/>
+                                            </args>
+                                        </payloadFactory>
+                                        <call>
+                                            <endpoint key="TransferenciaPagoBanco"/>
+                                        </call>
+                                    </sequence>
+                                </target>
+                                <target>
+                                    <sequence>
+                                        <payloadFactory description="DatosDespacho" media-type="json">
+                                            <format>{&#xd;
+   "accion": "despachar",&#xd;
+   "productos": $1&#xd;
+}</format>
+                                            <args>
+                                                <arg evaluator="json" expression="$.RESULTADO.productos"/>
+                                            </args>
+                                        </payloadFactory>
+                                        <call>
+                                            <endpoint key="DespacharPedidosSitioWeb"/>
+                                        </call>
+                                    </sequence>
+                                </target>
+                            </clone>
+                            <aggregate>
+                                <completeCondition>
+                                    <messageCount max="-1" min="-1"/>
+                                </completeCondition>
+                                <onComplete aggregateElementType="root" expression="json-eval($)">
+                                    <payloadFactory description="Resultados" media-type="json">
+                                        <format>{"RESULADOS": $1}</format>
+                                        <args>
+                                            <arg evaluator="json" expression="$"/>
+                                        </args>
+                                    </payloadFactory>
+                                    <respond/>
+                                </onComplete>
+                            </aggregate>
+                        </then>
+                        <else/>
+                    </filter>
+                </then>
+                <else/>
+            </filter>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence/>
+    </resource>
+</api>

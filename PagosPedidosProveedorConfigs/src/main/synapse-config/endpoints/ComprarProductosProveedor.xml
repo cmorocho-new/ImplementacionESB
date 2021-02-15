@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<endpoint name="ComprarProductosProveedor" xmlns="http://ws.apache.org/ns/synapse">
+    <http method="post" uri-template="http://192.168.1.121:5000/facturacion/generar_factura_pedido/GAPweb/">
+        <suspendOnFailure>
+            <initialDuration>-1</initialDuration>
+            <progressionFactor>1.0</progressionFactor>
+        </suspendOnFailure>
+        <markForSuspension>
+            <retriesBeforeSuspension>0</retriesBeforeSuspension>
+        </markForSuspension>
+    </http>
+</endpoint>
